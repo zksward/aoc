@@ -1,0 +1,138 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!markdown
+
+# Day 1: Trebuchet?!
+
+Something is wrong with global snow production, and you've been selected to take a look. The Elves have even given you a map; on it, they've used stars to mark the top fifty locations that are likely to be having problems.
+
+You've been doing this long enough to know that to restore snow operations, you need to check all fifty stars by December 25th.
+
+Collect stars by solving puzzles. Two puzzles will be made available on each day in the Advent calendar; the second puzzle is unlocked when you complete the first. Each puzzle grants one star. Good luck!
+
+You try to ask why they can't just use a weather machine ("not powerful enough") and where they're even sending you ("the sky") and why your map looks mostly blank ("you sure ask a lot of questions") and hang on did you just say the sky ("of course, where do you think snow comes from") when you realize that the Elves are already loading you into a trebuchet ("please hold still, we need to strap you in").
+
+As they're making the final adjustments, they discover that their calibration document (your puzzle input) has been amended by a very young Elf who was apparently just excited to show off her art skills. Consequently, the Elves are having trouble reading the values on the document.
+
+The newly-improved calibration document consists of lines of text; each line originally contained a specific calibration value that the Elves now need to recover. On each line, the calibration value can be found by combining the first digit and the last digit (in that order) to form a single two-digit number.
+
+For example:
+```
+1abc2
+pqr3stu8vwx
+a1b2c3d4e5f
+treb7uchet
+```
+
+In this example, the calibration values of these four lines are 12, 38, 15, and 77. Adding these together produces 142.
+
+Consider your entire calibration document. What is the sum of all of the calibration values?
+
+#!csharp
+
+var lines = System.IO.File.ReadAllLines("./input/day01.txt");
+var exampleLines = System.IO.File.ReadAllLines("./input/day01_example.txt");
+var combineIntoTwoDigits = (int a, int b) => int.Parse(a.ToString() + b.ToString());
+var parseDigits = (char c) => (int)char.GetNumericValue(c);
+var parseDigitsArray = (string s) => s.Select(parseDigits).Where(x => x > 0).ToArray();
+var findFirstAndLastDigits = (IEnumerable<int> digits) => digits.ToArray() switch {
+    [int a] => combineIntoTwoDigits(a, a),
+    [int a, int b] => combineIntoTwoDigits(a, b),
+    [int a, ..int[] middle, int b] => combineIntoTwoDigits(a, b),
+    _ => 0
+};
+
+var partOne = (string[] lines) => 
+    lines
+    .Select(parseDigitsArray)
+    .Select(findFirstAndLastDigits)
+    .Sum();
+
+Console.WriteLine($"Example Solution: {partOne(exampleLines)}");
+Console.WriteLine($"Part One Solution: {partOne(lines)}");
+
+#!markdown
+
+# Part Two
+
+Your calculation isn't quite right. It looks like some of the digits are actually spelled out with letters: one, two, three, four, five, six, seven, eight, and nine also count as valid "digits".
+
+Equipped with this new information, you now need to find the real first and last digit on each line. For example:
+```
+two1nine
+eightwothree
+abcone2threexyz
+xtwone3four
+4nineeightseven2
+zoneight234
+7pqrstsixteen
+```
+
+In this example, the calibration values are 29, 83, 13, 24, 42, 14, and 76. Adding these together produces 281.
+
+What is the sum of all of the calibration values?
+
+#!csharp
+
+var lines = System.IO.File.ReadAllLines("./input/day01.txt");
+var exampleLines = System.IO.File.ReadAllLines("./input/day01_example2.txt");
+var combineIntoTwoDigits = (int a, int b) => int.Parse(a.ToString() + b.ToString());
+var digits = new string[] { "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" };
+var parseDigit = (string s) => s switch {
+    "one" => "1",
+    "two" => "2",
+    "three" => "3",
+    "four" => "4",
+    "five" => "5",
+    "six" => "6",
+    "seven" => "7",
+    "eight" => "8",
+    "nine" => "9",
+    _ => ""
+};
+var parseDigits = ((string s, string d) acc, char c) => {
+    var digit = (int)char.GetNumericValue(c);
+
+    if (digit > -1) {
+        return ("", acc.d + digit);
+    }
+    
+    var potentialNumeral = acc.s + c;
+    var numeral = parseDigit(potentialNumeral);
+    var isNumeral = !string.IsNullOrEmpty(numeral);
+    var isPotentialNumeral = digits.Any(x => x.StartsWith(potentialNumeral));
+    
+    if (isNumeral) {
+        return (c.ToString(), acc.d + numeral);
+    }
+
+    // pop chars until potential is true
+    while (potentialNumeral.Length > 0 && !isPotentialNumeral) {
+        potentialNumeral = potentialNumeral.Substring(1);
+        isPotentialNumeral = digits.Any(x => x.StartsWith(potentialNumeral));
+    }
+
+    if (isPotentialNumeral) {
+        return (potentialNumeral, acc.d);
+    }
+    
+    return ("", acc.d);
+};
+var parseDigitsArray = (string s) => s.Aggregate(("", ""), parseDigits, ((string s, string d) acc) => acc.d.Select(c => (int)char.GetNumericValue(c)));
+var findFirstAndLastDigits = (IEnumerable<int> digits) => digits.ToArray() switch {
+    [int a] => combineIntoTwoDigits(a, a),
+    [int a, int b] => combineIntoTwoDigits(a, b),
+    [int a, ..int[] middle, int b] => combineIntoTwoDigits(a, b),
+    _ => 0
+};
+
+var partTwo = (string[] lines) => 
+    lines
+    .Select(parseDigitsArray)
+    .Select(findFirstAndLastDigits)
+    .Sum();
+
+Console.WriteLine($"Example Solution: {partTwo(exampleLines)}");
+Console.WriteLine($"Part One Solution: {partTwo(lines)}");
